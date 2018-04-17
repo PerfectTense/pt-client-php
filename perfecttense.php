@@ -610,7 +610,9 @@ class PTClient {
 	 */
 	public function getTransformOffset($data, $transform) {
 
-		if ($this->canMakeTransform($transform)) {
+		$sentence = $data['rulesApplied'][$transform['sentenceIndex']];
+
+		if ($this->canMakeTransform($sentence, $transform)) {
 			$sentence = $data['rulesApplied'][$transform['sentenceIndex']];
 			$activeTokens = $sentence['activeTokens'];
 
@@ -1214,7 +1216,7 @@ class PTInteractiveEditor {
 
 	// Returns a list of all transforms affecting the exact same tokens in the current sentence
 	public function getOverlappingTransforms($transform) {
-		$sentence = $this->ptClient->getSentence($this->data, $transform['sentenceIndex']);
+		$sentence = $this->getSentenceFromTransform($transform);
 		$overlappingTransforms = $this->ptClient->getOverlappingGroup($sentence, $transform);
 
 		return array_filter($overlappingTransforms, function ($t) {
@@ -1272,6 +1274,11 @@ class PTInteractiveEditor {
 		}
 
 		return False;
+	}
+
+	public function canMakeTransform($transform) {
+		$sentence = $this->getSentenceFromTransform($transform);
+		return $this->ptClient->canMakeTransform($sentence, $transform);
 	}
 
 	// Returns true if the last action can be undone, else false
