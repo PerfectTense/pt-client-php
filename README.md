@@ -44,7 +44,7 @@ $appKey = $response['key'];
 
 Once you have obtained an `App key` [here](https://app.perfecttense.com/api), you can initialize a PTClient object and begin interacting with our API.
 
-`
+```
 // Create a client for interaction with API
 $ptClient = new PTClient(
 	array(
@@ -52,13 +52,15 @@ $ptClient = new PTClient(
 	)
 );
 
-`
+```
 
 ## Submitting a Job
 
-Most interaction with the Perfect Tense API will use the `/correct` endpoint. Every request sent to this endpoint specifies an array call `responseType`, which is an array of response types to receive. Please see our [API documentation](https://www.perfecttense.com/docs/#introduction) for a description of the available response types. By default, this library will request all available response types.
+Most interactions with the Perfect Tense API will use the `/correct` endpoint. 
 
-Use the provided `submitJob` function to handle this interaction with the `/correct` endpoint.
+Every request sent to this endpoint specifies an array call `responseType`, which is an array of response types to receive. Please see our [API documentation](https://www.perfecttense.com/docs/#introduction) for a description of the available response types. By default, this library will request all available response types.
+
+Use the provided `submitJob` function to handle interaction with the `/correct` endpoint.
 
 Note that while the `ptClient` object was configured with the registered `App key`, individual API requests must still provide the additional `API key` authentication token.
 
@@ -77,7 +79,7 @@ Users have a limited number of daily requests. Using our `/usage` endpoint, you 
 // Fetch usage statistics
 $usage = $ptClient->getUsage($apiKey);
 
-// Number of API requests this user has remaining today.
+// Number of API requests this user has remaining today
 $numReqRemaining = $usage['apiRemainToday'];
 ```
 
@@ -90,8 +92,10 @@ The interactive editor is the recommended way to interact with a Perfect Tense r
 You can instantiate an interactive editor as follows:
 
 ```
+// Submit job to PT
 $result = $client->submitJob("This iz a test sentence.", $apiKey, null, null);
 
+// Create interactive editor
 $intEditor = new PTInteractiveEditor(
 	array(
 		'ptClient' => $ptClient,
