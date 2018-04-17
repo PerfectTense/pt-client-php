@@ -4,7 +4,7 @@ A PHP library used to interact with the Perfect Tense API.
 
 ## Authentication
 
-Most of the Perfect Tense API endpoints require the following two authentication tokens to be sent in the header of requests.
+Most of the Perfect Tense API endpoints require the following two authentication tokens to be sent in the header of requests:
 
 ### App Key
 
@@ -25,13 +25,17 @@ Currently, the best way to use this SDK is to check out the project from this re
 
 ## Generate an App Key
 
-The best way to generate an App key is to use our UI [here](https://app.perfecttense.com/api).
+The best way to generate an App key is to [use our UI](https://app.perfecttense.com/api).
 
 However, you can alternatively use our `/generateAppKey` endpoint as well, available through this SDK.
 
 ```
-$response = pt_generate_app_key("[API Key]", "Test App", "This is a brief description of the use of this application",
-		"[Email address]", "[Application URL]");
+$response = pt_generate_app_key(
+	"[API Key]", 
+	"Test App", 
+	"This is a brief description of the use of this application",
+	"[Email address]", 
+	"[Application URL]");
 
 $appKey = $response['key'];
 ```
@@ -40,7 +44,7 @@ $appKey = $response['key'];
 
 Once you have obtained an `App key` [here](https://app.perfecttense.com/api), you can initialize a PTClient object and begin interacting with our API.
 
-```
+`
 // Create a client for interaction with API
 $ptClient = new PTClient(
 	array(
@@ -48,7 +52,7 @@ $ptClient = new PTClient(
 	)
 );
 
-```
+`
 
 ## Submitting a Job
 
