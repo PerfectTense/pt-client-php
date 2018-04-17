@@ -2,6 +2,50 @@
 
 $ptUrl = 'https://api.perfecttense.com';
 
+
+/**
+ *	Generate an App key for this integration (alternatively, use our UI here: https://app.perfecttense.com/api).
+ *
+ *	@param string $apiKey			The API key to register this app under (likely your own)
+ *	@param string $name				The name of this app
+ *	@param string $description		The description of this app (minimum 50 characters)
+ *	@param string $contactEmail		Contact email address for this app (defaults to the email associated with the API key)
+ *	@param string $siteUrl			Optional URL that can be used to sign up for/use this app.
+ *
+ *	@return string					A unique app key
+ */
+function pt_generate_app_key($apiKey, $name, $description, $contactEmail, $siteUrl) {
+
+	$data = array(
+		'name' => $name,
+		'description' => $description,
+		'contactEmail' => $contactEmail,
+		'siteUrl' => $siteUrl
+	);
+
+	$ch = curl_init('https://api.perfecttense.com/generateAppKey');
+
+	curl_setopt_array($ch, array(
+		CURLOPT_POST => TRUE,
+		CURLOPT_RETURNTRANSFER => TRUE,
+		CURLOPT_HTTPHEADER => array(
+			"Content-type: application/json",
+			"Authorization: " . $apiKey
+		),
+		CURLOPT_POSTFIELDS => json_encode($data)
+	));
+
+	$response = curl_exec($ch);
+
+	if ($response === FALSE) {
+		die(curl_error($ch));
+	}
+
+	$responseData = json_decode($response, TRUE);
+
+	return $responseData;
+}
+
 class PTClient {
 
 	public $appKey;
@@ -27,6 +71,10 @@ class PTClient {
 	}
 
 
+/*********************************************************************
+		Interaction With Perfect Tense API
+**********************************************************************/
+
 	/*
 		Submit text to Perfect Tense, receiving specified responseTypes in result.
 
@@ -39,9 +87,6 @@ class PTClient {
 	 */
 	public function submitJob($text, $apiKey, $options, $responseType) {
 
-		//$responseType = is_null($responseType) ? $this->responseType : $responseType;
-		//$options = is_null($options) ? $this->options : $options;
-
 		$data = array(
 			'text' => $text,
 			'responseType' => $this->responseType,
@@ -53,25 +98,6 @@ class PTClient {
 		$this->setMetaData($result);
 
 		return $result;
-	}
-
-/*********************************************************************
-				Interaction With Perfect Tense Result
-**********************************************************************/
-
-	/**
-	 *	Get the grammar score result of this job.
-	 *	
-	 *	If the grammar score was requested in the original request, a value from 0.0 to 100.0
-	 *	will be returned. Otherwise, null will be returned.
-	 *
-	 *
-	 * 	@param object $data		Result returned from submitJob
-	 *
-	 *	@return number			The grammar score result to this job
-	 */
-	public function getGrammarScore($data) {
-		return $data['grammarScore'];
 	}
 
 	/**
@@ -102,6 +128,39 @@ class PTClient {
 		$responseData = json_decode($response, TRUE);
 
 		return $responseData;
+	}
+
+/*********************************************************************
+		Interaction With Perfect Tense Result
+**********************************************************************/
+
+	/**
+	 *	Set the app key for this client.
+	 *
+	 *	Generally, this will be done during initialization. However, if you have used generateApiKey
+	 *	to generate a new 
+	 *
+	 * 	@param object $data		Result returned from submitJob
+	 *
+	 *	@return number			The grammar score result to this job
+	 */
+	public function setAppKey($appKey) {
+		$this->appKey = $appKey;
+	}
+
+	/**
+	 *	Get the grammar score result of this job.
+	 *	
+	 *	If the grammar score was requested in the original request, a value from 0.0 to 100.0
+	 *	will be returned. Otherwise, null will be returned.
+	 *
+	 *
+	 * 	@param object $data		Result returned from submitJob
+	 *
+	 *	@return number			The grammar score result to this job
+	 */
+	public function getGrammarScore($data) {
+		return $data['grammarScore'];
 	}
 
 
@@ -1241,6 +1300,12 @@ class PTInteractiveEditor {
 	// Get the character offset of the sentence (relative to the current state of the job)
 	public function getSentenceOffset($sentence) {
 		return $this->ptClient->getSentenceOffset($this->data, $sentence);
+	}
+
+	// Get the offset of the transformation relative to the document start (not just the sentence)
+	public function getTransformDocumentOffset($transform) {
+		$sentence = $this->getSentenceFromTransform($transform);
+		return $this->getSentenceOffset($sentence) + $this->getTransformOffset($transform);
 	}
 
 	// Get the tokensAffected as a string
