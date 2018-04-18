@@ -14,7 +14,7 @@ $ptUrl = 'https://api.perfecttense.com';
  *
  *	@return string					A unique app key
  */
-function pt_generate_app_key($apiKey, $name, $description, $contactEmail, $siteUrl) {
+function pt_generate_app_key($apiKey, $name, $description = '', $contactEmail = '', $siteUrl = '') {
 
 	$data = array(
 		'name' => $name,
