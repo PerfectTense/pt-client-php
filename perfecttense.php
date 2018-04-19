@@ -450,9 +450,9 @@ class PTClient {
 	 *  Get the sentence index of the parameter transformation.
 	 *
 	 *
-	 * 	@param object $transform			The transformation in question
+	 * 	@param object $transform	The transformation in question
 	 *
-	 *	@return number					The index of the sentence in the job (0-based)
+	 *	@return number				The index of the sentence in the job (0-based)
 	 */
 	public function getSentenceIndex($transform) {
 		return $transform['sentenceIndex'];
@@ -462,7 +462,7 @@ class PTClient {
 	 *  Get the index of the parameter transformation in the current sentence.
 	 *
 	 *
-	 * 	@param object $transform		The transformation in question
+	 * 	@param object $transform	The transformation in question
 	 *
 	 *	@return number				The index of the transformation in the sentence (0-based)
 	 */
@@ -477,7 +477,7 @@ class PTClient {
 	 *	not just those in the current sentence.
 	 *
 	 *
-	 * 	@param object $transform		The transformation in question
+	 * 	@param object $transform	The transformation in question
 	 *
 	 *	@return number				The index of the transformation in the job (0-based)
 	 */
@@ -489,7 +489,7 @@ class PTClient {
 	 *  Get the "tokens added" field as text (from an array of tokens).
 	 *
 	 *
-	 * 	@param object $transform		The transformation in question
+	 * 	@param object $transform	The transformation in question
 	 *
 	 *	@return string				The tokens added as a string
 	 */
@@ -501,7 +501,7 @@ class PTClient {
 	 *  Get the "tokens affected" field as text (from an array of tokens).
 	 *
 	 *
-	 * 	@param object $transform		The transformation in question
+	 * 	@param object $transform	The transformation in question
 	 *
 	 *	@return string				The tokens affected as a string
 	 */
@@ -513,7 +513,7 @@ class PTClient {
 	 *  Returns true if the transformation is "clean", i.e. has not been accepted or rejected by the user.
 	 *
 	 *
-	 * 	@param object $transform		The transformation in question
+	 * 	@param object $transform	The transformation in question
 	 *
 	 *	@return boolean				True if the transform is clean, else false
 	 */
@@ -525,7 +525,7 @@ class PTClient {
 	 *	Returns true if the transformation has been accepted by the user
 	 *
 	 *
-	 *	@param object $transform		The transformation in question
+	 *	@param object $transform	The transformation in question
 	 *
 	 *	@return boolean				True if the transform has been accepted, else false
 	 */
@@ -537,7 +537,7 @@ class PTClient {
 	 *	Returns true if the transformation has been rejected by the user
 	 *
 	 *
-	 * 	@param object $transform		The transformation in question
+	 * 	@param object $transform	The transformation in question
 	 *
 	 *	@return boolean				True if the transform has been rejected, else false
 	 */
@@ -546,12 +546,24 @@ class PTClient {
 	}
 
 	/**
+	 *	Returns true if the transformation is a suggestion
+	 *
+	 *
+	 * 	@param object $transform	The transformation in question
+	 *
+	 *	@return boolean				True if the transform has been rejected, else false
+	 */
+	public function isSuggestion($transform) {
+		return $transform['isSuggestion'] === true; // return true/false, not null
+	}
+
+	/**
 	 *	Returns true if the transformation can be made, given the current state of the sentence.
 	 *
 	 *	This is checked by verifying that all of the "tokensAffected" in the transformation are present
 	 *	in the active working set of tokens in the sentence.
 	 *
-	 *	@param object $transform			The transformation in question
+	 *	@param object $transform		The transformation in question
 	 *
 	 *	@return boolean					True if the transform can be made, else false
 	 */
@@ -1155,9 +1167,9 @@ class PTInteractiveEditor {
 	}
 
 	// Execute all transformations available
-	public function applyAll() {
-		while ($this->hasNextTransform()) {
-			$this->acceptCorrection($this->getNextTransform());
+	public function applyAll($skipSuggestions = false) {
+		while ($this->hasNextTransform($skipSuggestions)) {
+			$this->acceptCorrection($this->getNextTransform($skipSuggestions));
 		}
 	}
 
@@ -1203,15 +1215,31 @@ class PTInteractiveEditor {
 		return $this->allAvailableTransforms;
 	}
 
+	// Utility to get the next non suggestion
+	private function getNextNonSuggestion() {
+		for ($i = 0; $i < count($this->allAvailableTransforms); $i++) {
+			if (!$this->ptClient->isSuggestion($this->allAvailableTransforms[$i])) {
+				return $this->allAvailableTransforms[$i];
+			}
+		}
+	}
+
 	// Returns true if there exists an available, clean transformation
-	public function hasNextTransform() {
-		return count($this->allAvailableTransforms) > 0;
+	public function hasNextTransform($ignoreSuggestions = false) {
+		if ($ignoreSuggestions) {
+			return $this->getNextNonSuggestion() != null;
+		} else {
+			return count($this->allAvailableTransforms) > 0;
+		}
 	}
 
 	// Returns the next available transformation
-	public function getNextTransform() {
-		$next = $this->allAvailableTransforms[0];
-		return $this->allAvailableTransforms[0];
+	public function getNextTransform($ignoreSuggestions = false) {
+		if ($ignoreSuggestions) {
+			return $this->getNextNonSuggestion();
+		} else {
+			return $this->allAvailableTransforms[0];
+		}
 	}
 
 	// Returns a list of all transforms affecting the exact same tokens in the current sentence
@@ -1230,7 +1258,7 @@ class PTInteractiveEditor {
 	}
 
 	// Accept the transformation and substitute the tokensAdded for the tokensAffected (optionally persisting to database)
-	public function acceptCorrection(&$transform) {
+	public function acceptCorrection($transform) {
 		if ($this->ptClient->acceptCorrection($this->data, $transform, $this->apiKey)) {
 			$this->updateTransformRefs($transform);
 			$this->updateAvailableCache();
@@ -1244,7 +1272,7 @@ class PTInteractiveEditor {
 	}
 
 	// Reject the transformation (optionally persisting to database)
-	public function rejectCorrection(&$transform) {
+	public function rejectCorrection($transform) {
 
 		if ($this->ptClient->rejectCorrection($this->data, $transform, $this->apiKey)) {
 			$this->updateTransformRefs($transform);
