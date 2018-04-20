@@ -60,6 +60,15 @@ class PTClient {
 	private $ALL_RESPONSE_TYPES = array('rulesApplied', 'grammarScore', 'corrected');
 
 
+	/**
+	 * Constructor for the Perfect Tense client
+	 *
+	 * @param object $arguments                              And array containing the below parameters
+	 * @param string $arguments->appKey                      The registered app key for this integration. 'See pt_generate_app_key' for more info.
+	 * @param boolean $arguments->persist=false              Optionally persist accept/reject actions through the perfect tense api.
+	 * @param object $arguments->options=array()             An optional array of options to be passed when submitting jobs. See our API docs for more info
+     * @param object $arguments->responseType=array(all)     An optional array of response types to receive. By default, this is set to all available resopnse types. See our api documentation for more information.
+	 */
 	public function __construct($arguments) {
 		$this->appKey = $arguments['appKey'];
 		$this->persist = $arguments['persist'];
@@ -1111,6 +1120,25 @@ class PTClient {
 }
 
 
+/**
+ * This class is used to interact with the result returned from PTClient->submitJob.
+ *
+ * The most basic usage is as follows:
+ *
+ * // submit a job to perfect tense
+ * $apiKey = [user's api key - they are assigned one when they create an account at https://app.perfecttense.com/];
+ * $result = ptClient->submitJob("Some text", $apiKey);
+ *
+ * // wrap the result in an interactive editor object
+ * $intEditor = new PTInteractiveEditor(array('ptClient'=>$ptClient, 'data'=>$result, 'apiKey'=>$apiKey));
+ *
+ * // interact with the result as needed
+ * $originalText = $intEditor->getCurrentText(); // the original text that was submitted (since no corrections have been made yet)
+ * $grammarScore = $intEditor->getGrammarScore(); // get the assigned grammar score for the original text (value from 0-100, 0 being the worst)
+ * $intEditor->applyAll(); // apply all corrections that were found
+ * $correctedText = $intEditor->getCurrentText(); // the final correct text, now that all corrections have been applied
+ *
+ */
 class PTInteractiveEditor {
 
 	private $ptClient;
@@ -1122,6 +1150,17 @@ class PTInteractiveEditor {
 	private $transStackSize;
 	private $allAvailableTransforms;
 
+
+	/**
+	 * Constructor for the interactive editor.
+	 *
+	 * @param object $arguments                                 And array containing the below parameters
+	 * @param object $arguments->ptClient                       An instance of the PTClient object (generally, only 1 is ever created)
+	 * @param object $arguments->data                           The result object returned from PTClient->submitJob
+	 * @param string $arguments->apiKey                         The user's API key (they must be prompted in some way to enter this. 
+     *                                                              It can be found here: https://app.perfecttense.com/home)
+     * @param boolean $arguments->ignoreNoReplacement=false     Optionally ignore transformations that do not offer replacement text
+	 */
 	public function __construct($arguments) {
 
 		$this->ptClient = $arguments['ptClient'];
@@ -1166,56 +1205,105 @@ class PTInteractiveEditor {
 
 	}
 
-	// Execute all transformations available
+	/**
+	 * Execute (accept) all transformations found for this input.
+	 *
+	 * @param boolean $skipSuggestions=false      Optionally skip any transformations that are just suggestions
+	 */
 	public function applyAll($skipSuggestions = false) {
 		while ($this->hasNextTransform($skipSuggestions)) {
 			$this->acceptCorrection($this->getNextTransform($skipSuggestions));
 		}
 	}
 
-	// Undo all actions (accept or reject)
+	/**
+	 * Undo all actions taken (accepting/rejecting transformations)
+	 */
 	public function undoAll() {
 		while ($this->canUndoLastTransform()) {
 			$this->undoLastTransform();
 		}
 	}
 
-	// Get the assigned grammar score
+	/**
+	 * Get the assigned grammar score for this input text.
+	 *
+	 * This is a value from 0 to 100, 0 being the lowest possible score.
+	 *
+	 * @return number        The assigned grammar score
+	 */
 	public function getGrammarScore() {
 		return $this->ptClient->getGrammarScore($this->data);
 	}
 
-	// Get usage statistics (# of requests remaining, etc.)
+	/**
+	 * Get usage statistics for the current user
+	 *
+	 * @return object   Returns an object containing the user's usage statistics. See our API documentation for more: https://www.perfecttense.com/docs/
+	 */
 	public function getUsage() {
 		return $this->ptClient->getUsage($this->apiKey);
 	}
 
-	// Accessor for the data
+	/**
+	 * Accessor for the result that this interactive editor is wrapping
+	 *
+	 * @return object   The result from PTClient->submitJob
+	 */
 	public function getData() {
 		return $this->data;
 	}
 
-	// Get the transform at the specified index (relative to the flattened list of all transformations)
+	/**
+	 * Get the transformation at the specified 0-based index.
+	 *
+	 * This index is relative to the "flattened" list of all transformations found accross all sentences.
+	 *
+	 * @return object   The transformation object at the specified index, or null if the index is invalid
+	 */
 	public function getTransform($flattenedIndex) {
 		return $this->flattenedTransformations[$flattenedIndex];
 	}
 
-	// Get the sentence at the specified index
+	/**
+	 * Get the sentence at the specified 0-based index.
+	 *
+	 * Sentences are indexed based on their order in the original text.
+	 *
+	 * ex. "This is sentence 1. This is sentence 2."
+	 * intEditor->getSentence(1) // returns sentence object for "This is sentence 2."
+	 *
+	 * @return object   The sentence object at the specified index, or null if the index is invalid
+	 */
 	public function getSentence($sentenceIndex) {
 		return $this->ptClient->getSentence($this->data, $sentenceIndex);
 	}
 
-	// Get the sentence from the transform
+	/**
+	 * Get the sentence object that contains the parameter transformation.
+	 *
+	 * @return object   The sentence object containing the parameter transformation
+	 */
 	public function getSentenceFromTransform($transform) {
 		return $this->getSentence($transform['sentenceIndex']);
 	}
 
-	// Get all transforms that are currently valid (their tokensAffected are available in the sentence)
+	/**
+	 * Get a list of all currently available transformations.
+	 *
+	 * @return object   A list of all currently available transformations.
+	 */
 	public function getAvailableTransforms() {
 		return $this->allAvailableTransforms;
 	}
 
-	// Utility to get the next non suggestion
+	/**
+	 * Private utility to get the next available transformation that is not a suggestion.
+	 *
+	 * To accomplish the same thing publicly, use getNextTransform($ignoreSuggestions=true)
+	 *
+	 * @return object   The next available transformation that is not a suggestion (or null if none)
+	 */
 	private function getNextNonSuggestion() {
 		for ($i = 0; $i < count($this->allAvailableTransforms); $i++) {
 			if (!$this->ptClient->isSuggestion($this->allAvailableTransforms[$i])) {
@@ -1224,7 +1312,18 @@ class PTInteractiveEditor {
 		}
 	}
 
-	// Returns true if there exists an available, clean transformation
+	/**
+	 * Returns true if there exists an available transformation.
+	 *
+	 * This is a utility for iterating through available transformations:
+	 *
+	 * while (intEditor->hasNextTransform()) { 
+	 *    $nextTransform = intEditor->getNextTransform();
+	 * }
+	 *
+	 * @param boolean $ignoreSuggestions=false    Optionally ignore transformations that are suggestions
+	 * @return boolean                            True if there is an available transform, else false
+	 */
 	public function hasNextTransform($ignoreSuggestions = false) {
 		if ($ignoreSuggestions) {
 			return $this->getNextNonSuggestion() != null;
@@ -1233,7 +1332,18 @@ class PTInteractiveEditor {
 		}
 	}
 
-	// Returns the next available transformation
+	/**
+	 * Get the next available transformation
+	 *
+	 * This is a utility for iterating through available transformations:
+	 *
+	 * while (intEditor->hasNextTransform()) { 
+	 *    $nextTransform = intEditor->getNextTransform();
+	 * }
+	 *
+	 * @param boolean $ignoreSuggestions=false    Optionally ignore transformations that are suggestions
+	 * @return object                             A transformation object if available, else null
+	 */
 	public function getNextTransform($ignoreSuggestions = false) {
 		if ($ignoreSuggestions) {
 			return $this->getNextNonSuggestion();
@@ -1242,7 +1352,21 @@ class PTInteractiveEditor {
 		}
 	}
 
-	// Returns a list of all transforms affecting the exact same tokens in the current sentence
+	/**
+	 * Get a list of all transformations that affect the EXACT SAME text as the parameter transformation.
+	 *
+	 * Ex. "He hould do it"
+	 *
+	 * Two transformations will be created:
+	 *   "hould" -> "could"
+	 *   "hould" -> "would"
+	 *
+	 * $overlapping = $intEditor-getOverlappingTransforms(["hould" -> "could"])
+	 *      This returns array("hould" -> "could", "hould" -> "would")
+	 *
+	 * @param object $transform         The transform that you are looking for overlaps of
+	 * @return object                   An array of overlapping transformations (minimum an array of 1 element - the parameter transform itself)
+	 */
 	public function getOverlappingTransforms($transform) {
 		$sentence = $this->getSentenceFromTransform($transform);
 		$overlappingTransforms = $this->ptClient->getOverlappingGroup($sentence, $transform);
@@ -1252,12 +1376,29 @@ class PTInteractiveEditor {
 		});
 	}
 
-	// Returns the current text of the job (considering whether transforms have been accepted or rejected)
+	/**
+	 * Returns the "current" text, considering transformations that have been accepted or rejected.
+	 *
+	 * When the interactive editor is first created, this will return the original text submitted to
+	 * Perfect Tense since no actions have been taken. Once transformations are accepted, the return
+	 * from this function will change accordingly.
+	 *
+	 * @return string        The current text, considering applied transformations
+	 */
 	public function getCurrentText() {
 		return $this->ptClient->getCurrentText($this->data);
 	}
 
-	// Accept the transformation and substitute the tokensAdded for the tokensAffected (optionally persisting to database)
+	/**
+	 * Accept the parameter transformation
+	 *
+	 * Mainly, this will replace the "affected" string with the "added" string, as well as update state
+	 * information to track how this might affect the availability of other transformations.
+	 *
+	 *
+	 * @param boolean $transform       The transformation to accept
+	 * @return boolean                 True if the transformation was successfully accepted, else false (it may not be available)
+	 */
 	public function acceptCorrection($transform) {
 		if ($this->ptClient->acceptCorrection($this->data, $transform, $this->apiKey)) {
 			$this->updateTransformRefs($transform);
@@ -1271,7 +1412,12 @@ class PTInteractiveEditor {
 		return False;
 	}
 
-	// Reject the transformation (optionally persisting to database)
+	/**
+	 * Reject the parameter transformation, and update state information accordingly
+	 *
+	 * @param boolean $transform       The transformation to reject
+	 * @return boolean                 True if the transformation was successfully rejected, else false (it may not be available)
+	 */
 	public function rejectCorrection($transform) {
 
 		if ($this->ptClient->rejectCorrection($this->data, $transform, $this->apiKey)) {
@@ -1286,7 +1432,11 @@ class PTInteractiveEditor {
 		return False;
 	}
 
-	// Undo the last transformation action (accept/reject -> clean) (optionally persisting to database)
+	/**
+	 * Undo the last accept or reject action (pop off of the stack), and update state information
+	 *
+	 * @return boolean       True if the last action was successfully undone, else false
+	 */
 	public function undoLastTransform() {
 
 		if ($this->transStackSize > 0) {
@@ -1304,12 +1454,28 @@ class PTInteractiveEditor {
 		return False;
 	}
 
+	/**
+	 * Check to see if the parameter transformation can be made (is present in the sentence).
+	 *
+	 * A transform "can be made" if its 'affected' tokens are present in the 'activeTokens' of the sentence.
+	 *
+	 * If you use the getNextTransform function, you do not need to call this. Use this function
+	 * if you are operating on transformations in a random order and are unsure if the transform
+	 * is available.
+	 *
+	 * @param boolean $transform       The transformation in question
+	 * @return boolean                 True if the parameter transformation can be made, else false
+	 */
 	public function canMakeTransform($transform) {
 		$sentence = $this->getSentenceFromTransform($transform);
 		return $this->ptClient->canMakeTransform($sentence, $transform);
 	}
 
-	// Returns true if the last action can be undone, else false
+	/**
+	 * Returns true if the last accept/reject action can be undone.
+	 *
+	 * @return boolean       True if the last action can be undone, else false
+	 */
 	public function canUndoLastTransform() {
 
 		if ($this->transStackSize > 0) {
@@ -1322,52 +1488,110 @@ class PTInteractiveEditor {
 		return False;
 	}
 
-	// Returns the last transformation that was interacted with
+	/**
+	 * Get the last transformation that was interacted with (accepted or rejected)
+	 *
+	 * @return object    The last transformation interacted with, or null if none
+	 */
 	public function getLastTransform() {
 		return $this->transformStack[$this->transStackSize - 1];
 	}
 
-	// Get the character offset of the transformation (relative to the current state of the sentence)
+	/**
+	 * Get the character offset of the parameter transformation relative to the sentence start
+	 * in the sentence's current state (considering any modifications through accepting/rejecting
+	 * transformations)
+	 *
+	 * @return number     The character offset of the transform in its sentence
+	 */
 	public function getTransformOffset($transform) {
 		return $this->ptClient->getTransformOffset($this->data, $transform);
 	}
 
-	// Get the character offset of the sentence (relative to the current state of the job)
+	/**
+	 * Get the character offset of the parameter sentence relative to the overall text start
+	 * in the text's current state (considering any modifications through accepting/rejecting
+	 * transformations)
+	 *
+	 * @return number     The character offset of the sentence
+	 */
 	public function getSentenceOffset($sentence) {
 		return $this->ptClient->getSentenceOffset($this->data, $sentence);
 	}
 
-	// Get the offset of the transformation relative to the document start (not just the sentence)
+	/**
+	 * Get the character offset of the parameter transformation relative to the overall text start
+	 * in the text's current state (considering any modifications through accepting/rejecting
+	 * transformations)
+	 *
+	 * This is effectively the same as calling getSentenceOffset + getTransformOffset
+	 *
+	 * @return number     The character offset of the transform in the text
+	 */
 	public function getTransformDocumentOffset($transform) {
 		$sentence = $this->getSentenceFromTransform($transform);
 		return $this->getSentenceOffset($sentence) + $this->getTransformOffset($transform);
 	}
 
-	// Get the tokensAffected as a string
+	/**
+	 * Get the tokens affected by this transform as a string
+	 *
+	 * @return string     The tokens affected as a string
+	 */
 	public function getAffectedText($transform) {
 		return $this->ptClient->getAffectedText($transform);
 	}
 
-	// Get the tokensAdded as a string
+	/**
+	 * Get the tokens added by this transform as a string
+	 *
+	 * @return string     The tokens added as a string
+	 */
 	public function getAddedText($transform) {
 		return $this->ptClient->getAddedText($transform);
 	}
 
-	// Get the original text of the job
+	/**
+	 * Get the original text of this job
+	 *
+	 * @return string     The original text of the job
+	 */
 	public function getOriginalText() {
 		return $this->ptClient->getOriginalText($this->data);
 	}
 
-	// Get all "clean" transformations (ones that have not been accepted or rejected yet)
+	/**
+	 * Get all clean transformations remaining.
+	 *
+	 * A transform is "clean" if it has not been accepted or rejected yet.
+	 *
+	 * Note that not all "clean" transformations are necessarily available. To check
+	 * if they are available, call canMakeTransform.
+	 *
+	 * @return object     An array of all clean transformations.
+	 */
 	public function getAllClean() {
 		return array_filter($this->flattenedTransformations, function ($transform) {
 			return $this->ptClient->isClean($transform);
 		});
 	}
 
-	// Get the number of sentences in the job
+	/**
+	 * Get the number of sentences in the job
+	 *
+	 * @return number     The number of sentences in the job
+	 */
 	public function getNumSentences() {
 		return $this->ptClient->getNumSentences($this->data);
+	}
+
+	/**
+	 * Get the number of transformations in the job
+	 *
+	 * @return number     The number of transformations in the job
+	 */
+	public function getNumTransformations() {
+		return count($this->flattenedTransformations);
 	}
 
 	// Updates cache of available transformations (optionally skipping suggestions without replacements)
@@ -1377,7 +1601,7 @@ class PTInteractiveEditor {
 		}));
 	}
 
-	// PHP mutability... updaet all references to transform
+	// PHP mutability... update all references to transform
 	private function updateTransformRefs(&$transform) {
 		$sentence =& $this->data['rulesApplied'][$transform['sentenceIndex']];
 		$sentence['transformations'][$transform['indexInSentence']] = $transform;
