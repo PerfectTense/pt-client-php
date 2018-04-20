@@ -67,7 +67,7 @@ class PTClient {
 	 * @param string $arguments->appKey                      The registered app key for this integration. 'See pt_generate_app_key' for more info.
 	 * @param boolean $arguments->persist=false              Optionally persist accept/reject actions through the perfect tense api.
 	 * @param object $arguments->options=array()             An optional array of options to be passed when submitting jobs. See our API docs for more info
-     * @param object $arguments->responseType=array(all)     An optional array of response types to receive. By default, this is set to all available resopnse types. See our api documentation for more information.
+	 * @param object $arguments->responseType=array(all)     An optional array of response types to receive. By default, this is set to all available resopnse types. See our api documentation for more information.
 	 */
 	public function __construct($arguments) {
 		$this->appKey = $arguments['appKey'];
