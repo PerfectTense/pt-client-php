@@ -160,12 +160,12 @@ While iterating through and accepting or rejecting corrections, the state of the
 // Re-construct the current state of the job (considering accepted/rejected corrections)
 $currentText = $intEditor->getCurrentText();
 
-console.log(currentText)
+echo $currentText
 ```
 
 ### Retrieve Character Offsets
 
-Many applications will need to reference the character offset of corrections. These can be recovered using the `getSentenceOffset` and `getTransformOffset` utilities as follows:
+Many applications will need to reference the character offset of corrections. These can be recovered using the `getTransformDocumentOffset` utility
 
 ```
 // Find character offset of the transformation
