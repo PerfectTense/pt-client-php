@@ -259,7 +259,7 @@ class PTClient {
 	public function setMetaData(&$data) {
 
 		// Only valid for rulesApplied response type
-		if (is_null($data['rulesApplied'])) {
+		if (!array_key_exists('rulesApplied', $data)) {
 			return;
 		}
 
@@ -1165,18 +1165,12 @@ class PTInteractiveEditor {
 		$this->ptClient = $arguments['ptClient'];
 		$this->data = $arguments['data'];
 		$this->apiKey = $arguments['apiKey'];
-
-		
-		$ignoreNoRep = $arguments['ignoreNoReplacement'];
-		
-		$this->ignoreNoReplacement = is_null($ignoreNoRep) ? False : $ignoreNoRep;
-
+		$this->ignoreNoReplacement = !array_key_exists('ignoreNoReplacement', $arguments) ? False : $arguments['ignoreNoReplacement'];
 
 		// All functions assume that this metadata has been set when interacting with corrections
-		if (!$this->data['hasMeta']) {
+		if (!array_key_exists('hasMeta', $this->data) || !$this->data['hasMeta']) {
 			$ptClient->setMetaData($this->data);
 		}
-
 		
 		// Transformations from each sentence flattened into one array for easier indexing
 		$this->flattenedTransformations = array();
