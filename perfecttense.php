@@ -1169,7 +1169,7 @@ class PTInteractiveEditor {
 
 		// All functions assume that this metadata has been set when interacting with corrections
 		if (!array_key_exists('hasMeta', $this->data) || !$this->data['hasMeta']) {
-			$ptClient->setMetaData($this->data);
+			$this->ptClient->setMetaData($this->data);
 		}
 		
 		// Transformations from each sentence flattened into one array for easier indexing
