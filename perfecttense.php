@@ -162,11 +162,26 @@ class PTClient {
 				"Authorization: " . $apiKey,
 				"AppAuthorization: " . $this->appKey
 			),
-			CURLOPT_POSTFIELDS => json_encode($data)
+			CURLOPT_POSTFIELDS => json_encode($data, JSON_FORCE_OBJECT)
 		);
 
-		echo "Submitting to PT:<br>";
+		echo "Forcing object encode:";
 		print_r($forDebugging);
+
+
+		$forDebuggingNoEncode = array(
+			CURLOPT_POST => TRUE,
+			CURLOPT_RETURNTRANSFER => TRUE,
+			CURLOPT_HTTPHEADER => array(
+				"Authorization: " . $apiKey,
+				"AppAuthorization: " . $this->appKey
+			),
+			CURLOPT_POSTFIELDS => $data
+		);
+
+		echo "No json encoding:<br>";
+		print_r($forDebuggingNoEncode);
+
 
 		curl_setopt_array($ch, array(
 			CURLOPT_POST => TRUE,
@@ -176,7 +191,7 @@ class PTClient {
 				"Authorization: " . $apiKey,
 				"AppAuthorization: " . $this->appKey
 			),
-			CURLOPT_POSTFIELDS => json_encode($data)
+			CURLOPT_POSTFIELDS => json_encode($data, JSON_FORCE_OBJECT)
 		));
 
 		$response = curl_exec($ch);
