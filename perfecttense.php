@@ -154,6 +154,20 @@ class PTClient {
 
 		$ch = curl_init('https://api.perfecttense.com' . $endPoint);
 
+		$forDebugging = array(
+			CURLOPT_POST => TRUE,
+			CURLOPT_RETURNTRANSFER => TRUE,
+			CURLOPT_HTTPHEADER => array(
+				"Content-type: application/json",
+				"Authorization: " . $apiKey,
+				"AppAuthorization: " . $this->appKey
+			),
+			CURLOPT_POSTFIELDS => json_encode($data)
+		)
+
+		echo "Submitting to PT:<br>";
+		print_r($forDebugging);
+
 		curl_setopt_array($ch, array(
 			CURLOPT_POST => TRUE,
 			CURLOPT_RETURNTRANSFER => TRUE,
