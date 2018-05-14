@@ -66,13 +66,13 @@ class PTClient {
 	 * @param object $arguments                              And array containing the below parameters
 	 * @param string $arguments->appKey                      The registered app key for this integration. 'See pt_generate_app_key' for more info.
 	 * @param boolean $arguments->persist=false              Optionally persist accept/reject actions through the perfect tense api.
-	 * @param object $arguments->options=array()             An optional array of options to be passed when submitting jobs. See our API docs for more info
+	 * @param object $arguments->options=new stdClass()      An optional Object of options to be passed when submitting jobs. See our API docs for more info
 	 * @param object $arguments->responseType=array(all)     An optional array of response types to receive. By default, this is set to all available resopnse types. See our api documentation for more information.
 	 */
 	public function __construct($arguments) {
 		$this->appKey = !array_key_exists('appKey', $arguments) ? "" : $arguments['appKey'];
 		$this->persist = !array_key_exists('persist', $arguments) ? false : $arguments['persist'];
-		$this->options = !array_key_exists('options', $arguments) ? [] : $arguments['options'];
+		$this->options = !array_key_exists('options', $arguments) ? new stdClass() : $arguments['options'];
 		$this->responseType = !array_key_exists('responseType', $arguments) ? $this->ALL_RESPONSE_TYPES : $arguments['responseType'];
 	}
 
@@ -154,7 +154,7 @@ class PTClient {
 
 		$ch = curl_init('https://api.perfecttense.com' . $endPoint);
 
-		$forDebugging = array(
+		$testingObject = array(
 			CURLOPT_POST => TRUE,
 			CURLOPT_RETURNTRANSFER => TRUE,
 			CURLOPT_HTTPHEADER => array(
@@ -162,27 +162,11 @@ class PTClient {
 				"Authorization: " . $apiKey,
 				"AppAuthorization: " . $this->appKey
 			),
-			CURLOPT_POSTFIELDS => json_encode($data, JSON_FORCE_OBJECT)
+			CURLOPT_POSTFIELDS => json_encode($data)
 		);
 
-		echo "Forcing object encode:";
-		print_r($forDebugging);
-
-
-		$forDebuggingNoEncode = array(
-			CURLOPT_POST => TRUE,
-			CURLOPT_RETURNTRANSFER => TRUE,
-			CURLOPT_HTTPHEADER => array(
-				"Authorization: " . $apiKey,
-				"AppAuthorization: " . $this->appKey
-			),
-			CURLOPT_POSTFIELDS => $data
-		);
-
-		echo "No json encoding:<br>";
-		print_r($forDebuggingNoEncode);
-
-
+		print_r($testingObject);
+		
 		curl_setopt_array($ch, array(
 			CURLOPT_POST => TRUE,
 			CURLOPT_RETURNTRANSFER => TRUE,
@@ -191,7 +175,7 @@ class PTClient {
 				"Authorization: " . $apiKey,
 				"AppAuthorization: " . $this->appKey
 			),
-			CURLOPT_POSTFIELDS => json_encode($data, JSON_FORCE_OBJECT)
+			CURLOPT_POSTFIELDS => json_encode($data)
 		));
 
 		$response = curl_exec($ch);
