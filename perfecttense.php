@@ -99,7 +99,7 @@ class PTClient {
 		$data = array(
 			'text' => $text,
 			'responseType' => $this->responseType,
-			'options' => json_encode($this->options)
+			'options' => $this->options
 		);
 
 		$result = $this->submitToPt($data, $apiKey, '/correct');
@@ -1060,7 +1060,7 @@ class PTClient {
 		));
 
 		$response = curl_exec($ch);
-
+		
 		if ($response === FALSE) {
 			die(curl_error($ch));
 		}
