@@ -94,12 +94,15 @@ class PTClient {
 	 *
 	 *	@return object					The result response from Perfect Tense
 	 */
-	public function submitJob($text, $apiKey, $options, $responseType) {
+	public function submitJob($text, $apiKey, $options = null, $responseType = null) {
+
+		$jobOptions = is_null($options) ? $this->options : $options;
+		$jobResponseType = is_null($responseType) ? $this->responseType : $responseType;
 
 		$data = array(
 			'text' => $text,
-			'responseType' => $this->responseType,
-			'options' => $this->options
+			'responseType' => $jobResponseType,
+			'options' => $jobOptions
 		);
 
 		$result = $this->submitToPt($data, $apiKey, '/correct');
@@ -130,6 +133,43 @@ class PTClient {
 
 		$response = curl_exec($ch);
 
+		if ($response === FALSE) {
+			die(curl_error($ch));
+		}
+
+		$responseData = json_decode($response, TRUE);
+
+		return $responseData;
+	}
+
+	/**
+	 *	Utility to submit a payload to the Perfect Tense API
+	 *
+	 *	Once configured, this integration's "App Key" will be inserted into all API requests.
+	 *
+	 *	See our API documentation for more information: https://www.perfecttense.com/docs/#introduction
+	 *
+	 *	@param object $data			Payload to be submitted (see api docs: )
+	 *	@param object $apiKey		The user's apiKey to validate this request
+	 *	@param string $endPoint		The API endpoint (see docs)
+	 */
+	private function submitToPt($data, $apiKey, $endPoint) {
+
+		$ch = curl_init('https://api.perfecttense.com' . $endPoint);
+
+		curl_setopt_array($ch, array(
+			CURLOPT_POST => TRUE,
+			CURLOPT_RETURNTRANSFER => TRUE,
+			CURLOPT_HTTPHEADER => array(
+				"Content-type: application/json",
+				"Authorization: " . $apiKey,
+				"AppAuthorization: " . $this->appKey
+			),
+			CURLOPT_POSTFIELDS => $data//json_encode($data)
+		));
+
+		$response = curl_exec($ch);
+		
 		if ($response === FALSE) {
 			die(curl_error($ch));
 		}
@@ -1032,44 +1072,6 @@ class PTClient {
 
 		$this->submitToPt($data, $apiKey, "/updateStatus");
 	}
-
-	/**
-	 *	Utility to submit a payload to the Perfect Tense API
-	 *
-	 *	Once configured, this integration's "App Key" will be inserted into all API requests.
-	 *
-	 *	See our API documentation for more information: https://www.perfecttense.com/docs/#introduction
-	 *
-	 *	@param object $data			Payload to be submitted (see api docs: )
-	 *	@param object $apiKey		The user's apiKey to validate this request
-	 *	@param string $endPoint		The API endpoint (see docs)
-	 */
-	private function submitToPt($data, $apiKey, $endPoint) {
-
-		$ch = curl_init('https://api.perfecttense.com' . $endPoint);
-
-		curl_setopt_array($ch, array(
-			CURLOPT_POST => TRUE,
-			CURLOPT_RETURNTRANSFER => TRUE,
-			CURLOPT_HTTPHEADER => array(
-				"Content-type: application/json",
-				"Authorization: " . $apiKey,
-				"AppAuthorization: " . $this->appKey
-			),
-			CURLOPT_POSTFIELDS => json_encode($data)
-		));
-
-		$response = curl_exec($ch);
-		
-		if ($response === FALSE) {
-			die(curl_error($ch));
-		}
-
-		$responseData = json_decode($response, TRUE);
-
-		return $responseData;
-	}
-
 
 	/**
 	 *	Utility to "make" a transformation (accept it).

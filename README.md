@@ -67,7 +67,7 @@ Note that while the `ptClient` object was configured with the registered `App ke
 
 ```
 // Submit job to PT
-$result = $client->submitJob("This iz a test sentence.", $apiKey, null, null);
+$result = $ptClient->submitJob("This iz a test sentence.", $apiKey, null, null);
 
 ```
 
