@@ -158,11 +158,11 @@ class PTClient {
 			CURLOPT_POST => TRUE,
 			CURLOPT_RETURNTRANSFER => TRUE,
 			CURLOPT_HTTPHEADER => array(
-				//"Content-type: application/json",
+				"Content-type: application/json",
 				"Authorization: " . $apiKey,
 				"AppAuthorization: " . $this->appKey
 			),
-			CURLOPT_POSTFIELDS => $data//json_encode($data)
+			CURLOPT_POSTFIELDS => json_encode($data)
 		));
 
 		$response = curl_exec($ch);
@@ -1167,6 +1167,11 @@ class PTInteractiveEditor {
 		$this->apiKey = $arguments['apiKey'];
 		$this->ignoreNoReplacement = !array_key_exists('ignoreNoReplacement', $arguments) ? False : $arguments['ignoreNoReplacement'];
 
+		// Jobs must be submitted with the 'rulesApplied' response type to use editor. This is on by default.
+		if (!array_key_exists('rulesApplied', $this->data)) {
+			die("Must include rulesApplied response type to use interactive editor.");
+		}
+
 		// All functions assume that this metadata has been set when interacting with corrections
 		if (!array_key_exists('hasMeta', $this->data) || !$this->data['hasMeta']) {
 			$this->ptClient->setMetaData($this->data);
@@ -1195,7 +1200,6 @@ class PTInteractiveEditor {
 		$this->allAvailableTransforms = null;
 
 		$this->updateAvailableCache();
-
 	}
 
 	/**
