@@ -163,7 +163,7 @@ class PTClient {
 				"AppAuthorization: " . $this->appKey
 			),
 			CURLOPT_POSTFIELDS => json_encode($data)
-		)
+		);
 
 		echo "Submitting to PT:<br>";
 		print_r($forDebugging);
