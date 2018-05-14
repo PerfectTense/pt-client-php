@@ -70,12 +70,9 @@ class PTClient {
 	 * @param object $arguments->responseType=array(all)     An optional array of response types to receive. By default, this is set to all available resopnse types. See our api documentation for more information.
 	 */
 	public function __construct($arguments) {
-		$this->appKey = $arguments['appKey'];
-		$this->persist = $arguments['persist'];
-
-	
+		$this->appKey = !array_key_exists('appKey', $arguments) ? "" : $arguments['appKey'];
+		$this->persist = !array_key_exists('persist', $arguments) ? false : $arguments['persist'];
 		$this->options = !array_key_exists('options', $arguments) ? [] : $arguments['options'];
-		
 		$this->responseType = !array_key_exists('responseType', $arguments) ? $this->ALL_RESPONSE_TYPES : $arguments['responseType'];
 	}
 
@@ -161,7 +158,7 @@ class PTClient {
 			CURLOPT_POST => TRUE,
 			CURLOPT_RETURNTRANSFER => TRUE,
 			CURLOPT_HTTPHEADER => array(
-				"Content-type: application/json",
+				//"Content-type: application/json",
 				"Authorization: " . $apiKey,
 				"AppAuthorization: " . $this->appKey
 			),
